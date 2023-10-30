@@ -37,6 +37,7 @@ class Contec():
         for bit in self.input_bits:
             ans = 1 if num & (1 << bit) else 0	            # 1をbit回ビットシフトした値との論理積を取り、0以外なら1を、0なら0を返す
             result.append(ans)
+        print("光センサーの状態　" , result)
         return result
 
     def array2num(self, arr):
@@ -47,6 +48,7 @@ class Contec():
         return result
 
     def input(self):
+        print("contec input start")
         ret = cdio.DioInpByte(self.dio_id, self.port_no, ctypes.byref(self.io_data))
         if ret == cdio.DIO_ERR_SUCCESS:
             arr = self.num2array(self.io_data.value)
@@ -57,7 +59,7 @@ class Contec():
             return []
 
     def output(self, bool):
-        num = array2num(self.relays)
+        num = self.array2num(self.relays)
         io_data = ctypes.c_ubyte(num) if bool else ctypes.c_ubyte(0)
         ret = cdio.DioOutByte(self.dio_id, self.port_no, io_data)
         if ret == cdio.DIO_ERR_SUCCESS:

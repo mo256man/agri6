@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 from myEphem import Ephem
 from myConfig import Config
-# from myContec import Contec
+from myContec import Contec
 import json
 import random
 from time import sleep
@@ -10,17 +10,17 @@ import configparser
 import os
 
 from gpiozero import MCP3004
-# import RPi.GPIO as GPIO
-# import dht11
+import RPi.GPIO as GPIO
+import dht11
 
 light_pins = [26, 19, 13, 6, 5]     # 5個の光センサーの状態を取得するラズパイのGPIOピン
 humi_pin = 20
 led_pin = 16
 pilot_pin = 21
 pilot_status = False
-# humi_sensor = dht11.DHT11(pin=humi_pin)
+humi_sensor = dht11.DHT11(pin=humi_pin)
 
-"""
+
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.cleanup()
@@ -28,7 +28,7 @@ GPIO.setup(pilot_pin, GPIO.OUT)
 GPIO.setup(led_pin, GPIO.OUT)
 for pin in light_pins:
     GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-"""
+
 # グローバル変数
 light_sum = 0               # 光センサーオフの累計
 sensing_count = 0           # 光センサー計測リセット回数
@@ -49,6 +49,7 @@ def add_log(text, filename):
     with open(filename, mode="a") as f:
         f.write(text + "\n")
 
+contec = Contec()
 config = Config()                   # 設定のクラス
 app = Flask(__name__)
 
@@ -137,19 +138,15 @@ def getLight():
 
     if request.method == "POST":
         is_try = request.form["isTry"]
+        print(is_try)
         lights = []
         if is_try=="true":               # true/falseは文字列として送られてくる
-            """
-            lights = contec.input()
-            print(lights)
-            """
+            print("光センサー　トライ")
             for _ in light_pins:
                 lights.append(random.choice([1, 0]))
         else:
-            pass
-#            for pin in light_pins:
-#                lights.append(GPIO.input(pin))
-        
+            lights = contec.input()
+            print("光センサー　本番", lights)
         light_sum += sum(lights)
         log = ""
         for light in lights:
@@ -158,6 +155,7 @@ def getLight():
         dict["light_sum"] = light_sum
         dict["log"] = log
         dict["light_cnt"] = light_cnt
+        print(dict)
         return json.dumps(dict)
 
 
@@ -166,7 +164,6 @@ def getLight():
 def enpowerLED():
     if request.method == "POST":
         is_On = int(request.form["isOn"])
-        """
         if is_On:
             print("育成LEDオン")
             contec.output(True)
@@ -174,14 +171,13 @@ def enpowerLED():
             print("育成LEDオフ")
             contec.output(False)
 
-        """
         is_On = int(request.form["isOn"])
         if is_On:
             print("育成LEDオン")
-#            GPIO.output(led_pin, True)
+            GPIO.output(led_pin, True)
         else:
             print("育成LEDオフ")
-#            GPIO.output(led_pin, False)
+            GPIO.output(led_pin, False)
         return json.dumps({"response": "done"})
 
 
@@ -226,10 +222,17 @@ def setConfig():
         
         print("設定変更", dict)
         config.write(dict)
+        
+        # コンテックリレー出力設定を変更する
+        arr = []
+        for i in [1,2,3,4]:
+            key = f"output{i}"
+            arr.append(1 if request.form[key]=="true" else 0)
+        contec.define_output_relays(arr)
+
         return json.dumps({"response": "done"})
-        print("=" * 50)
     print("*" * 50)
 
 if __name__ == "__main__":
-    # app.run(host="0.0.0.0", port=5000, debug=True)
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+    # app.run(debug=True)

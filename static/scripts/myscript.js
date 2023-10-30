@@ -282,7 +282,7 @@ async function showTime() {
         }
 
         // 10分ごとバッテリ残容量を更新する
-        if (s==10) {
+        if (s==10 && m==0) {
             // addMsg(time + "　バッテリ残容量更新");
             bp = getBatt(isBattTry);
         }
@@ -361,7 +361,7 @@ function addLightLog(txt) {
 
 // 光センサーログを削除する
 function clearLightMsg() {
-    $("#lightlog").html("光センサー<br>　" + sensing_interval + "分間隔で" + sensing_count + "回測定し、次の点灯消灯を判断します<br><br>");
+    $("#lightlog").html("光センサー　○：曇り　−：晴れ<br>　" + sensing_interval + "分間隔で" + sensing_count + "回測定し、次の点灯消灯を判断します<br><br>");
 }
 
 // ログをテキストファイルに保存する
@@ -421,8 +421,8 @@ async function getLight(isTry) {
             showLights(dict["log"]);
             const th = 5*sensing_count*sensing_threshold;
             if (dict["light_cnt"] == sensing_count-1) {             // 指定した回数だけセンサー値を測定したら
-                addLightLog("光のカウント" + dict["light_sum"] + "　　しきい値" + th);
-                if (dict["light_sum"] > th) {                       // 点灯消灯判断　しきい値以上ならば
+                addLightLog("曇りのカウント" + dict["light_sum"] + "　　しきい値" + th);
+                if (dict["light_sum"] < th) {                       // 点灯消灯判断　しきい値未満ならば
                     isLED = false;                                  // 消灯にする
                     if (lastIsLED) {                                // さっきまで点灯していたら
                         msg = "十分明るいので消灯します";
@@ -441,7 +441,6 @@ async function getLight(isTry) {
                         msg = "暗いので点灯します";
                         lightOnTime = dayjs();
                     };
-                    
                 };
                 addMsg(time + "　" + msg);
                 addLightLog(msg);
@@ -600,7 +599,7 @@ async function getTimeMode() {
     };
 
     // 時刻モードが変更になったときのみ以下の処理をおこなう
-    if (mode != lastmode) {
+    if ((mode != lastmode)) {
         lastmode = mode;
         switch (mode) {
             case "夜":
@@ -745,7 +744,7 @@ async function getConfig() {
     });
 };
 
-// 設定ファイルを変更する関数
+// 設定を変更する関数
 async function setConfig() {
     // ブラウザ上に表示されている値をまとめて辞書に登録する
     let dict = {};
@@ -771,7 +770,8 @@ async function setConfig() {
     }).fail(function() {
         console.log("設定ファイル変更失敗");
     });
-    calcTime();             // 変更した設定に伴い再計算する
+    await getConfig()               // 変更した設定をあらためて取り込む
+    calcTime();                     // 変更した設定に伴い再計算する
 };
 
 
