@@ -131,14 +131,18 @@ def getHumi():
 @app.route("/getLight", methods=["POST"])
 def getLight():
     global light_cnt, light_sum, light_log, sensing_count
-    light_cnt = (light_cnt+1) % sensing_count
-    if light_cnt == 0:
-        light_log = ""
-        light_sum = 0
-
     if request.method == "POST":
+        print("*"*50)
+        print(request.form)
         is_try = request.form["isTry"]
-        print(is_try)
+        is_light_cnt = request.form["isLightCnt"]
+
+        if is_light_cnt == "true":
+            light_cnt = (light_cnt+1) % sensing_count
+            if light_cnt == 0:
+                light_log = ""
+                light_sum = 0
+
         lights = []
         if is_try=="true":               # true/falseは文字列として送られてくる
             print("光センサー　トライ")
